@@ -40,12 +40,19 @@ def get_date_created(url):
         news_created.append(time.text.strip())
 
 
-def clean_date(date):
-    pass
-
+def main(url):
+    get_headline(url)
+    get_category(url)
+    get_date_created(url)
+    for i in range(len(news_headline)):
+        print("============================")
+        print("Headline: " + news_headline[i])
+        print("Category: " + news_category[i])
+        print("Created: " + news_created[i])
+        print("============================")
 
 if __name__ == '__main__':
     #  get_headline('https://lifestyle.okezone.com/indeks')
     #  get_category('https://lifestyle.okezone.com/indeks')
     #  get_date_created('https://lifestyle.okezone.com/indeks')
-    clean_date(get_date_created('https://lifestyle.okezone.com/indeks'))
+    main('https://lifestyle.okezone.com/indeks')
