@@ -3,6 +3,7 @@ from time import sleep
 import requests
 import pandas as pd
 
+
 news_headline = []
 news_category = []
 news_created = []
@@ -10,6 +11,7 @@ news_url = []
 next_page_url = []
 one_year_date = []
 indeks_url = []
+all_news_url = []
 
 
 def get_one_year_url(url):
@@ -34,13 +36,12 @@ def get_next_page_url():
             if list_berita:
                 next_page_url.append(url_new)
                 increment += 10
-                sleep(10)
             else:
                 break
+            sleep(10)
 
 
 def get_news():
-    #  get headline
     for all_url in range(len(next_page_url)):
         source = requests.get(next_page_url[all_url]).text
         soup = BeautifulSoup(source, 'lxml')
@@ -71,15 +72,37 @@ def get_news():
         for url_index in body.find_all('h4', class_='f17'):
             if url_index:
                 news_url.append(url_index.a.get('href'))
-
             else:
                 break
         sleep(10)
 
 
-def main(url):
+def get_news_url(url):
+    for i in range(3):
+        current_url = ''
+        source = requests.get(url).text
+        print(url)
+        soup = BeautifulSoup(source, 'lxml')
+        body = soup.find('body')
+        url_div = body.find('div', class_='next')
+        try:
+            next_button = url_div.find('span', class_='nextssdh')
+            if next_button.text == 'Selanjutnya':
+                new_url = url_div.a.get('href')
+                current_url = new_url
+                print(current_url)
+                sleep(10)
+                break
+            else:
+                break
+        except AttributeError:
+            break
+
+
+def main():
     print("Getting valid URL...")
-    get_one_year_url(url)
+    #  get_one_year_url(url)
+    indeks_url.append('https://news.okezone.com/indeks?tgl=11&bln=10&thn=2021&button=GO')
     get_next_page_url()
     print("Done")
     print("Displaying data...")
@@ -94,4 +117,4 @@ def main(url):
 
 
 if __name__ == '__main__':
-    main('https://news.okezone.com/indeks')
+    get_news_url('https://news.okezone.com/read/2021/11/11/18/2500200/3-cerita-miris-korban-pemerkosaan-di-ethiopia-diperkosa-beramai-ramai-oleh-pemberontak')
