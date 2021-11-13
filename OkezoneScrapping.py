@@ -77,26 +77,38 @@ def get_news():
         sleep(10)
 
 
-def get_news_url(url):
-    for i in range(3):
-        current_url = ''
-        source = requests.get(url).text
-        print(url)
+def get_all_news_url(url):
+    increment = 0
+    for i in range(5):
+        increment += 1
+        formatted_url = url + f'?page={increment}'
+        source = requests.get(formatted_url).text
         soup = BeautifulSoup(source, 'lxml')
         body = soup.find('body')
-        url_div = body.find('div', class_='next')
-        try:
-            next_button = url_div.find('span', class_='nextssdh')
-            if next_button.text == 'Selanjutnya':
-                new_url = url_div.a.get('href')
-                current_url = new_url
-                print(current_url)
-                sleep(10)
+        no_active = body.find('div', class_='next noactive')
+        next_button = body.find('div', class_='next')
+
+        if next_button:
+            all_news_url.append(formatted_url)
+            if no_active:
                 break
-            else:
-                break
-        except AttributeError:
+        elif not next_button:
+            all_news_url.append(url)
             break
+        else:
+            break
+        sleep(10)
+
+
+def get_news_content():
+    for i in range(len(all_news_url)):
+        source = requests.get(all_news_url[i]).text
+        soup = BeautifulSoup(source, 'lxml')
+        body = soup.find('body')
+        news_content = body.find('div', class_='read')
+        for text_news in news_content.find_all('p'):
+            print(text_news.text.strip())
+        sleep(10)
 
 
 def main():
@@ -117,4 +129,5 @@ def main():
 
 
 if __name__ == '__main__':
-    get_news_url('https://news.okezone.com/read/2021/11/11/18/2500200/3-cerita-miris-korban-pemerkosaan-di-ethiopia-diperkosa-beramai-ramai-oleh-pemberontak')
+    get_all_news_url('https://nasional.okezone.com/read/2021/11/13/337/2501145/presiden-jokowi-tanam-pohon-kayu-putih-di-kawasan-gunung-pepe')
+    get_news_content()
