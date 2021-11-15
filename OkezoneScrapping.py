@@ -3,7 +3,6 @@ from time import sleep
 import requests
 import pandas as pd
 
-
 news_headline = []
 news_category = []
 news_created = []
@@ -12,6 +11,7 @@ next_page_url = []
 one_year_date = []
 indeks_url = []
 all_news_url = []
+text_news_content = []
 
 
 def get_one_year_url(url):
@@ -26,7 +26,7 @@ def get_next_page_url():
     for year in range(len(indeks_url)):
         new_url = indeks_url[year]
         increment = 0
-        for i in range(2):
+        for i in range(1):
             url_new = new_url + str(increment)
             source = requests.get(new_url).text
             soup = BeautifulSoup(source, 'lxml')
@@ -87,12 +87,14 @@ def get_all_news_url(url):
         body = soup.find('body')
         no_active = body.find('div', class_='next noactive')
         next_button = body.find('div', class_='next')
+        next_article = body.find('a', class_='ga_NextArticle')
 
         if next_button:
             all_news_url.append(formatted_url)
-            if no_active:
+            get_news_content(all_news_url[i])
+            if no_active or next_article:
                 break
-        elif not next_button:
+        elif not next_button or next_article:
             all_news_url.append(url)
             break
         else:
@@ -100,34 +102,26 @@ def get_all_news_url(url):
         sleep(10)
 
 
-def get_news_content():
-    for i in range(len(all_news_url)):
-        source = requests.get(all_news_url[i]).text
-        soup = BeautifulSoup(source, 'lxml')
-        body = soup.find('body')
-        news_content = body.find('div', class_='read')
-        for text_news in news_content.find_all('p'):
-            print(text_news.text.strip())
-        sleep(10)
+def get_news_content(url):
+    source = requests.get(url).text
+    soup = BeautifulSoup(source, 'lxml')
+    body = soup.find('body')
+    news_content = body.find('div', class_='read')
+    text = news_content.get_text(strip=True)
+    text_news_content.append(text)
+    sleep(10)
 
 
 def main():
-    print("Getting valid URL...")
-    #  get_one_year_url(url)
-    indeks_url.append('https://news.okezone.com/indeks?tgl=11&bln=10&thn=2021&button=GO')
-    get_next_page_url()
-    print("Done")
-    print("Displaying data...")
+    next_page_url.append('https://news.okezone.com/indeks/2021/11/15/')
     get_news()
-    for i in range(len(news_headline)):
-        print("============================")
-        print("Headline: " + news_headline[i])
-        print("Category: " + news_category[i])
-        print("Created: " + news_created[i])
-        print("URL: " + news_url[i])
-        print("============================")
-
+    for i in range(len(news_url)):
+        get_all_news_url(news_url[i])
+    for j in range(len(news_headline)):
+        print('====================================')
+        print('Headline: ' + news_headline[j])
+        print('Text : ' + text_news_content[j])
+        print('====================================')
 
 if __name__ == '__main__':
-    get_all_news_url('https://nasional.okezone.com/read/2021/11/13/337/2501145/presiden-jokowi-tanam-pohon-kayu-putih-di-kawasan-gunung-pepe')
-    get_news_content()
+    main()
