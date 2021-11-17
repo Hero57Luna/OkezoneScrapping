@@ -1,7 +1,11 @@
+from datetime import datetime, timezone
 from bs4 import BeautifulSoup
 from time import sleep
 import requests
 import pandas as pd
+import mysql.connector
+import locale
+import time
 
 news_headline = []
 news_category = []
@@ -12,6 +16,15 @@ one_year_date = []
 indeks_url = []
 all_news_url = []
 text_news_content = []
+
+mydb = mysql.connector.connect(
+    host='localhost',
+    user='root',
+    password='',
+    database='okezone'
+)
+
+mycursor = mydb.cursor()
 
 
 def get_one_year_url(url):
@@ -56,7 +69,6 @@ def get_news():
         for category_index in body.find_all(class_='c-news'):
             if category_index:
                 news_category.append(category_index.a.text)
-
             else:
                 break
 
@@ -64,8 +76,13 @@ def get_news():
             if time_index:
                 unwanted = time_index.find('span', class_='c-news')
                 unwanted.extract()
-                news_created.append(time_index.text.strip())
-
+                final_date = time_index.text.strip()
+                string_date = str(final_date)
+                var = string_date.split(' ', 1)[1].rstrip(' WIB')
+                locale.setlocale(locale.LC_ALL, 'id')
+                datetime_object = datetime.strptime(var, '%d %B %Y %H:%M')
+                string_datetime_object = str(datetime_object)
+                news_created.append(string_datetime_object)
             else:
                 break
 
@@ -90,12 +107,13 @@ def get_all_news_url(url):
         next_article = body.find('a', class_='ga_NextArticle')
 
         if next_button:
-            all_news_url.append(formatted_url)
-            get_news_content(all_news_url[i])
+            get_news_content(formatted_url)
             if no_active or next_article:
                 break
+            else:
+                pass
         elif not next_button or next_article:
-            all_news_url.append(url)
+            get_news_content(url)
             break
         else:
             break
@@ -107,21 +125,39 @@ def get_news_content(url):
     soup = BeautifulSoup(source, 'lxml')
     body = soup.find('body')
     news_content = body.find('div', class_='read')
-    text = news_content.get_text(strip=True)
-    text_news_content.append(text)
+    text = news_content.get_text()
+    final_text = text.replace('\n', ' ')
+    text_news_content.append(final_text)
     sleep(10)
 
 
+# def get_date_in(loc, df):
+    # formats = ["%d-%b-%Y", "%d %b %Y", "%A-%b-%Y"]  # Update formats here
+    #
+    # for f in formats:
+    #     if f == df:
+    #         locale.setlocale(locale.LC_ALL, loc)
+    #         loc_date = time.strftime(f)
+    #         return loc_date
+
+
 def main():
-    next_page_url.append('https://news.okezone.com/indeks/2021/11/15/')
+    next_page_url.append('https://news.okezone.com/indeks/2021/11/17/')
     get_news()
     for i in range(len(news_url)):
-        get_all_news_url(news_url[i])
+        get_news_content(news_url[i])
     for j in range(len(news_headline)):
-        print('====================================')
-        print('Headline: ' + news_headline[j])
-        print('Text : ' + text_news_content[j])
-        print('====================================')
+        headline = news_headline[j]
+        kategori = news_category[j]
+        created = news_created[j]
+        url = news_url[j]
+        berita = text_news_content[j]
+
+        sql = 'INSERT INTO berita (headline, kategori, tanggal, url, teks) VALUES (%s, %s, %s, %s, %s)'
+        val = (headline, kategori, created, url, berita)
+        mycursor.execute(sql, val)
+        mydb.commit()
+
 
 if __name__ == '__main__':
     main()
